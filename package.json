@@ -1,0 +1,23 @@
+{
+  "name": "spot.js",
+  "version": "0.0.1",
+  "description": "An adaptation of Zotify in Javascript as a library. Probably not very good!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vacuousVersifier/spot.js.git"
+  },
+  "keywords": [
+    "spotify",
+    "Zotify"
+  ],
+  "author": "vacuousVersifier",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/vacuousVersifier/spot.js/issues"
+  },
+  "homepage": "https://github.com/vacuousVersifier/spot.js#readme"
+}
