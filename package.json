@@ -19,5 +19,9 @@
   "bugs": {
     "url": "https://github.com/vacuousVersifier/spot.js/issues"
   },
-  "homepage": "https://github.com/vacuousVersifier/spot.js#readme"
+  "homepage": "https://github.com/vacuousVersifier/spot.js#readme",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "spotify-web-api-node": "^5.0.2"
+  }
 }
