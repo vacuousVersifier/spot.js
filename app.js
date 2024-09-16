@@ -29,24 +29,24 @@ class App {
         });
     }
 
-    download_album(album_id) {
-        return this.get_album_tracks(album_id).then(tracks => {
-            let track_promises = new Array();
+    downloadAlbum(albumID) {
+        return this.getAlbumTracks(albumID).then(tracks => {
+            let trackPromises = new Array();
             for(let i = 0; i < tracks.length; i++) {
-                track_promises.push(this.download_track(tracks[i].id));
+                trackPromises.push(this.downloadTrack(tracks[i].id));
             }
-            return Promise.allSettled(track_promises);
+            return Promise.allSettled(trackPromises);
         })
     }
 
-    get_album_tracks(album_id) {
+    getAlbumTracks(albumID) {
         return new Promise(async (resolve, reject) => {
             let loop = true;
             let tracks = new Array();
             let offset = 0;
 
             while(loop) {
-                await this.spotify.getAlbumTracks(album_id, { limit : 50, offset }).then(data => {
+                await this.spotify.getAlbumTracks(albumID, { limit : 50, offset }).then(data => {
                     loop = data.body.next !== null;
                     offset += 50;
 
@@ -60,11 +60,18 @@ class App {
         });
     }
 
-    download_track(track_id) {
+    downloadTrack(trackID) {
         return new Promise((resolve, reject) => {
-            console.log(track_id);
+            let outputTemplate = this.config.get_output_template
+
+
+
             resolve();
         })
+    }
+
+    getSongInfo(trackID) {
+
     }
 }
 
