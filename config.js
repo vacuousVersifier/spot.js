@@ -1,28 +1,58 @@
 import os from "os";
-import fsp from "fs/promises";
 
 class Config {
-    constructor() {
-        this.config = new Object();
+    constructor(options) {
+        this.configRoot = (options?.configRoot !== undefined) ? options.configRoot : `${os.homedir()}/.spot.js`
+        this.configFile = `${this.configRoot}/config.json`
+        this.outputRoot = (options?.outputRoot !== undefined) ? options.outputRoot : `${os.homedir()}/Music`
+        this.outputTemplate = (options?.outputTemplate !== undefined) ? options.outputTemplate : `{artist}/{album}/{track_number} - {track}.{ext}`
+        this.tempFilePath = `${this.configFile}/temp`
+
+        if(options?.clientID !== undefined) {
+            this.clientID = options.clientID
+        } else {
+            throw new Error("You must provide a Client ID!");
+        }
+
+        if(options?.clientSecret !== undefined) {
+            this.clientSecret = options.clientSecret
+        } else {
+            throw new Error("You must provide a Client Secret!");
+        }
+
+        if(options?.redirectURI !== undefined) {
+            this.redirectURI = options.redirectURI
+        } else {
+            throw new Error("You must provide a Redirect URI!");
+        }
+
+        if(options?.username !== undefined) {
+            this.username = options.username
+        } else {
+            throw new Error("You must provide a Username!");
+        }
+
+        if(options?.password !== undefined) {
+            this.password = options.password
+        } else {
+            throw new Error("You must provide a password!");
+        }
     }
 
-    load() {
-        this.rootPath = `${os.homedir()}/.spot.js`
-        this.configFile = `${this.rootPath}/config.json`
-        this.outputRootPath = `/mnt/storage/music`
-        this.outputTemplate = `{artist}/{album}/{track_number} - {track}.{ext}`
-        this.tempFilePath = `${this.rootPath}/temp`
+    getUsername() {
+        return this.username
+    }
 
-        fsp.readFile(this.configFile).then(data => {
-            this.config = JSON.parse(data.toString());
+    getPassword() {
+        return this.password
+    }
 
-            // console.log(this.config);
-        }).catch(err => {
-            return fsp.mkdir(this.rootPath)
-            .then(() => {
-                return fsp.writeFile(this.configFile, JSON.stringify(this.config));
-            });
-        });
+    getClientOptions() {
+        return {
+            clientId: this.clientID,
+            clientSecret: this.clientSecret,
+            redirectUri: this.redirectURI
+        }
     }
 
     getTempFilePath() {
@@ -33,8 +63,8 @@ class Config {
         return this.outputTemplate;
     }
 
-    getOutputRootPath() {
-        return this.outputRootPath;
+    getOutputRoot() {
+        return this.outputRoot;
     }
 }
 

@@ -1,6 +1,5 @@
 import Config from "./config.js";
 
-import dotenv from "dotenv";
 import fsp from "fs/promises";
 import path from "path";
 import spotifyWebAPI from "spotify-web-api-node";
@@ -8,27 +7,15 @@ import Librespot from "librespot";
 import ffmpeg from "fluent-ffmpeg";
 
 export default class App {
-    constructor() {
-        this.config = new Config();
-        this.storedAlbums = new Object();
-        this.storedTracks = new Object();
-
-        dotenv.config();
+    constructor(options) {
+        this.config = new Config(options);
     }
 
     login() {
-        this.config.load();
-
-        const options = {
-            clientId: process.env.CLIENT_ID,
-            clientSecret: process.env.CLIENT_SECRET,
-            redirectUri: process.env.REDIRECT_URI
-        }
-
         this.librespot = new Librespot();
-        this.spotify = new spotifyWebAPI(options);
+        this.spotify = new spotifyWebAPI(this.config.getClientOptions());
         
-        return this.librespot.login(process.env.USERNAME, process.env.PASSWORD).then(() => {
+        return this.librespot.login(this.config.getUsername(), this.config.getPassword()).then(() => {
             return this.spotify.clientCredentialsGrant()
         }).then(data => {
             console.log("The spotify access token expires in " + data.body["expires_in"] + " seconds");
@@ -91,8 +78,8 @@ export default class App {
             outputTemplate = outputTemplate.replace("{track}", name)
             outputTemplate = outputTemplate.replace("{ext}", "ogg")
 
-            let filePath = `${this.config.getOutputRootPath()}/${outputTemplate}`
-            let tempPath = `${this.config.getOutputRootPath()}/${outputTemplate}.tmp`
+            let filePath = `${this.config.getOutputRoot()}/${outputTemplate}`
+            let tempPath = `${this.config.getOutputRoot()}/${outputTemplate}.tmp`
             let parentPath = path.dirname(filePath)
             
 

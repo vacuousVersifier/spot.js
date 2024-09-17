@@ -1,18 +1,18 @@
+import dotenv from "dotenv";
 import Spot from "./index.js";
 import fsp from "fs/promises";
 import cliProgress from "cli-progress";
 import colors from "ansi-colors";
 
-/*
-        this.rootPath = `${os.homedir()}/.spot.js`
-        this.configFile = `${this.rootPath}/config.json`
-        this.outputRootPath = `/mnt/storage/music`
-        this.outputTemplate = `{artist}/{album}/{track_number} - {track}.{ext}`
-        this.tempFilePath = `${this.rootPath}/temp`
-*/
+dotenv.config();
 
 let spot = new Spot({
-    root: 
+    outputRoot: `/mnt/storage/music`,
+    clientID: process.env.CLIENT_ID,
+    clientSecret: process.env.CLIENT_SECRET,
+    redirectURI: process.env.REDIRECT_URI,
+    username: process.env.USERNAME,
+    password: process.env.PASSWORD
 });
 
 
