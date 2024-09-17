@@ -20,7 +20,7 @@ spot.login().then(() => {
     return fsp.readFile("/home/ollie/coder/projects/spot.js/AlbumList.txt");
 }).then(async data => {
     let progress = new cliProgress.SingleBar({
-        format: 'Downloading Albums ||' + colors.cyan('{bar}') + '|| {percentage}% || {value}/{total} Albums || Current ID: {album}',
+        format: 'Downloading Albums ||' + colors.cyan('{bar}') + '|| {percentage}% || {value}/{total} Albums || Current ID: {album} || Previous Downloaded: {status}',
         barCompleteChar: '\u2588',
         barIncompleteChar: '\u2591',
         hideCursor: true
@@ -31,12 +31,20 @@ spot.login().then(() => {
 
     progress.start(albums.length, 0);
 
+    let status = "Not started";
     for(let i = 0; i < albums.length; i++) {
         progress.update(i + 1, {
-            album: albums[i]
+            album: albums[i],
+            status
         });
 
-        await spot.downloadAlbum(albums[i]);
+        await spot.downloadAlbum(albums[i]).then(response => {
+            let downloaded = 0;
+            response.items.forEach(track => {
+                if(track.result !== "error") downloaded++;
+            });
+            status = `${downloaded}/${response.totalTracks} downloaded`
+        });
     }
 
     progress.close();

@@ -2,7 +2,6 @@ import Config from "./config.js";
 
 import fsp from "fs/promises";
 import path from "path";
-import spotifyWebAPI from "spotify-web-api-node";
 import Librespot from "librespot";
 import ffmpeg from "fluent-ffmpeg";
 
@@ -12,110 +11,148 @@ export default class App {
     }
 
     login() {
-        this.librespot = new Librespot();
-        this.spotify = new spotifyWebAPI(this.config.getClientOptions());
-        
-        return this.librespot.login(this.config.getUsername(), this.config.getPassword()).then(() => {
-            return this.spotify.clientCredentialsGrant()
-        }).then(data => {
-            console.log("The spotify access token expires in " + data.body["expires_in"] + " seconds");
-            console.log("The spotify access token is " + data.body["access_token"]);
+        return new Promise((resolve, reject) => {
+            this.spotify = new Librespot();
 
-            this.spotify.setAccessToken(data.body["access_token"]);
+            this.spotify.login(
+                this.config.getUsername(),
+                this.config.getPassword()
+            ).then(() => {
+                resolve();
+            }).catch(() => {
+                reject(new Error("Could not log into Spotify!"));
+            });
         });
     }
 
     downloadAlbum(albumID) {
-        return this.getAlbumTracks(albumID).then(tracks => {
-            let trackPromises = new Array();
-            for(let i = 0; i < tracks.length; i++) {
-                trackPromises.push(this.downloadTrack(tracks[i], albumID));
-            }
-            return Promise.allSettled(trackPromises);
-        })
-    }
+        return new Promise((resolve, reject) => {
+            let response = {
+                totalTracks: 0,
+                items: new Array()
+            };
+            let album;
 
+            this.getAlbumMetadata(albumID).then(retrievedAlbum => {
+                album = retrievedAlbum;
+                return this.getAlbumTracks(albumID);
+            }).then(tracks => {
+                response.totalTracks = tracks.length;
 
-
-    getAlbumTracks(albumID) {
-        return new Promise(async (resolve, reject) => {
-            let loop = true;
-            let tracks = new Array();
-            let offset = 0;
-
-            while(loop) {
-                await this.spotify.getAlbumTracks(albumID, { limit : 50, offset }).then(data => {
-                    loop = data.body.next !== null;
-                    offset += 50;
-
-                    data.body.items.forEach(track => {
-                        tracks.push(track);
+                let promises = new Array();
+                tracks.forEach(track => {
+                    let promise = this.downloadTrack(track, album.name).then(result => {
+                        response.items.push({ 
+                            track, 
+                            result: "success",
+                            value: result
+                         });
+                    }).catch(err => {
+                        response.items.push({ 
+                            track, 
+                            result: "error",
+                            value: err
+                         });
                     });
+                    promises.push(promise)
                 });
-            }
-
-            resolve(tracks);
+                return Promise.allSettled(promises);
+            }).then(() => {
+                resolve(response);
+            }).catch(err => {
+                reject(err);
+            });
         });
     }
 
-    downloadTrack(track, albumID) {
-        return new Promise(async (resolve, reject) => {
-            let outputTemplate = this.config.getOutputTemplate();
+    downloadTrack(track, albumName) {
+        return new Promise((resolve, reject) => {
+            let trackArtist = track.artists[0].name;
+            let trackName = track.name;
+            let trackNumber = track.trackNumber;
+            let trackID = track.id;
 
-            if(this.storedAlbums[albumID] === undefined) {
-                await this.getAlbum(albumID);
-            }
+            let outputName = this.config.getOutputTemplate();
+            outputName = outputName.replace("{artist}", trackArtist);
+            outputName = outputName.replace("{album}", albumName);
+            outputName = outputName.replace("{track_number}", trackNumber);
+            outputName = outputName.replace("{track}", trackName);
+            outputName = outputName.replace("{ext}", "ogg");
 
+            let filePath = `${this.config.getOutputRoot()}/${outputName}`;
+            let parentPath = path.dirname(filePath);
 
-            let artist = track.artists[0].name;
-            let albumName = this.storedAlbums[albumID].name;
-            let name = track.name;
-            let trackNumber = track.track_number;
+            let tempPath = `${this.config.getOutputRoot()}/${outputName}.tmp`;
 
-            outputTemplate = outputTemplate.replace("{artist}", artist)
-            outputTemplate = outputTemplate.replace("{album}", albumName)
-            outputTemplate = outputTemplate.replace("{track_number}", trackNumber)
-            outputTemplate = outputTemplate.replace("{track}", name)
-            outputTemplate = outputTemplate.replace("{ext}", "ogg")
-
-            let filePath = `${this.config.getOutputRoot()}/${outputTemplate}`
-            let tempPath = `${this.config.getOutputRoot()}/${outputTemplate}.tmp`
-            let parentPath = path.dirname(filePath)
-            
-
+            // Checking if directory is already created
             fsp.mkdir(parentPath, { recursive: true }).then(() => {
-                return fsp.readFile(filePath)
-                .catch(err => {
-                    return this.librespot.get.track(track.id);
-                }).then(result => {
-                    return fsp.writeFile(tempPath, result.stream);
-                }).then(() => {
-                    return new Promise((resolve, reject) => {
-                        ffmpeg(tempPath)
-                        .audioCodec("copy")
-                        .outputOption(
-                            '-metadata', `artist=${artist}`,
-                            '-metadata', `title=${name}`,
-                            '-metadata', `album=${albumName}`,
-                            '-metadata', `track=${trackNumber}`,
-                        )
-                        .output(filePath)
-                        .on('end', () => { resolve() })
-                        .run();
-                    });
-                }).then(() => {
-                    return fsp.unlink(tempPath);
-                }).then(() => {
-                    resolve();
-                }).catch(err => {});
+                return this.checkFileExists(filePath);
+            }).then(exists => {
+                if(exists) reject(new Error("Track file already exists!"));
+
+                return this.spotify.get.track(trackID);
+            }).then(result => {
+                return fsp.writeFile(tempPath, result.stream);
+            }).then(() => {
+                return this.convert(tempPath, filePath, track, albumName)
+            }).then(() => {
+                return fsp.unlink(tempPath);
+            }).then(() => {
+                resolve();
+            }).catch(err => {
+                reject(err);
             })
-        })
+        });
     }
 
-    getAlbum(albumID) {
-        return this.spotify.getAlbum(albumID).then(data => {
-            this.storedAlbums[data.body.id] = data.body;
-            return data.body;
-        })
+    convert(tempPath, filePath, track, albumName) {
+        return new Promise((resolve, reject) => {
+            let trackArtist = track.artists[0].name;
+            let trackName = track.name;
+            let trackNumber = track.track_number;
+
+            ffmpeg(tempPath)
+            .audioCodec("copy")
+            .outputOption(
+                '-metadata', `artist=${trackArtist}`,
+                '-metadata', `title=${trackName}`,
+                '-metadata', `album=${albumName}`,
+                '-metadata', `track=${trackNumber}`,
+            )
+            .output(filePath)
+            .on('end', () => { resolve() })
+            .on("error", err => reject(new Error("Could not convert track file!")))
+            .run();
+        });
+    }
+
+    checkFileExists(filepath){
+        return new Promise((resolve, reject) => {
+            fsp.access(filepath, fsp.constants.F_OK).then(() => {
+                resolve(true);
+            }).catch(() => {
+                resolve(false);
+            });
+        });
+      }
+
+    getAlbumTracks(albumID) {
+        return new Promise(async (resolve, reject) => {
+            this.spotify.get.albumTracks(albumID).then(tracks => {
+                resolve(tracks);
+            }).catch(err => {
+                reject("Could not get album tracks!");
+            });
+        });
+    }
+
+    getAlbumMetadata(albumID) {
+        return new Promise((resolve, reject) => {
+            this.spotify.get.albumMetadata(albumID).then(album => {
+                resolve(album)
+            }).catch(err => {
+                reject(new Error("Could not get album metadata!"))
+            })
+        });
     }
 };
