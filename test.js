@@ -3,7 +3,19 @@ import fsp from "fs/promises";
 import cliProgress from "cli-progress";
 import colors from "ansi-colors";
 
-let spot = new Spot();
+/*
+        this.rootPath = `${os.homedir()}/.spot.js`
+        this.configFile = `${this.rootPath}/config.json`
+        this.outputRootPath = `/mnt/storage/music`
+        this.outputTemplate = `{artist}/{album}/{track_number} - {track}.{ext}`
+        this.tempFilePath = `${this.rootPath}/temp`
+*/
+
+let spot = new Spot({
+    root: 
+});
+
+
 spot.login().then(() => {
     return fsp.readFile("/home/ollie/coder/projects/spot.js/AlbumList.txt");
 }).then(async data => {

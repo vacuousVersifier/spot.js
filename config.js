@@ -4,8 +4,6 @@ import fsp from "fs/promises";
 class Config {
     constructor() {
         this.config = new Object();
-        // this.config.test1 = "Hello"
-        // this.config.test2 = [1, 2, "H", 0x0100010]
     }
 
     load() {
