@@ -8,24 +8,6 @@ class Config {
         this.outputTemplate = (options?.outputTemplate !== undefined) ? options.outputTemplate : `{artist}/{album}/{track_number} - {track}.{ext}`
         this.tempFilePath = `${this.configFile}/temp`
 
-        if(options?.clientID !== undefined) {
-            this.clientID = options.clientID
-        } else {
-            throw new Error("You must provide a Client ID!");
-        }
-
-        if(options?.clientSecret !== undefined) {
-            this.clientSecret = options.clientSecret
-        } else {
-            throw new Error("You must provide a Client Secret!");
-        }
-
-        if(options?.redirectURI !== undefined) {
-            this.redirectURI = options.redirectURI
-        } else {
-            throw new Error("You must provide a Redirect URI!");
-        }
-
         if(options?.username !== undefined) {
             this.username = options.username
         } else {

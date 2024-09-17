@@ -8,9 +8,6 @@ dotenv.config();
 
 let spot = new Spot({
     outputRoot: `/mnt/storage/music`,
-    clientID: process.env.CLIENT_ID,
-    clientSecret: process.env.CLIENT_SECRET,
-    redirectURI: process.env.REDIRECT_URI,
     username: process.env.USERNAME,
     password: process.env.PASSWORD
 });
