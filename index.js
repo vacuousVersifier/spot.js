@@ -36,27 +36,24 @@ export default class App {
             this.getAlbumMetadata(albumID).then(retrievedAlbum => {
                 album = retrievedAlbum;
                 return this.getAlbumTracks(albumID);
-            }).then(tracks => {
+            }).then(async tracks => {
                 response.totalTracks = tracks.length;
 
-                let promises = new Array();
-                tracks.forEach(track => {
-                    let promise = this.downloadTrack(track, album.name).then(result => {
+                for(let i = 0; i < tracks.length; i++) {
+                    await this.downloadTrack(tracks[i], album.name).then(result => {
                         response.items.push({ 
-                            track, 
+                            track: tracks[i], 
                             result: "success",
                             value: result
                          });
                     }).catch(err => {
                         response.items.push({ 
-                            track, 
+                            track: tracks[i], 
                             result: "error",
                             value: err
                          });
-                    });
-                    promises.push(promise)
-                });
-                return Promise.allSettled(promises);
+                    })
+                }
             }).then(() => {
                 resolve(response);
             }).catch(err => {
